@@ -28,7 +28,7 @@ export const LatexTools: FC = () => {
         .string()
         .describe("The LaTeX code to insert at the cursor position"),
     }),
-    execute: async ({ code }) => {
+    execute: async ({ code }: { code: string }) => {
       insertAtCursor(code);
       return { success: true, message: "Code inserted at cursor position" };
     },
@@ -57,7 +57,7 @@ export const LatexTools: FC = () => {
     parameters: z.object({
       code: z.string().describe("The LaTeX code to replace the selection with"),
     }),
-    execute: async ({ code }) => {
+    execute: async ({ code }: { code: string }) => {
       if (!selectionRange) {
         return {
           success: false,
@@ -102,7 +102,7 @@ export const LatexTools: FC = () => {
       find: z.string().describe("The exact text to find in the document"),
       replace: z.string().describe("The text to replace it with"),
     }),
-    execute: async ({ find, replace }) => {
+    execute: async ({ find, replace }: { find: string; replace: string }) => {
       const success = findAndReplace(find, replace);
       if (!success) {
         return {
