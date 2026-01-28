@@ -68,6 +68,7 @@ export function PdfPreview() {
   const pdfData = useDocumentStore((s) => s.pdfData);
   const compileError = useDocumentStore((s) => s.compileError);
   const isCompiling = useDocumentStore((s) => s.isCompiling);
+  const isSaving = useDocumentStore((s) => s.isSaving);
   const setPdfData = useDocumentStore((s) => s.setPdfData);
   const setCompileError = useDocumentStore((s) => s.setCompileError);
   const setIsCompiling = useDocumentStore((s) => s.setIsCompiling);
@@ -242,7 +243,13 @@ export function PdfPreview() {
     <div className="flex h-full flex-col bg-muted/50">
       <div className="flex h-9 items-center justify-between border-border border-b bg-background px-2">
         <div className="flex items-center gap-1.5">
-          {isCompiling && (
+          {isSaving && (
+            <>
+              <LoaderIcon className="size-3.5 animate-spin text-muted-foreground" />
+              <span className="text-muted-foreground text-xs">Saving...</span>
+            </>
+          )}
+          {!isSaving && isCompiling && (
             <>
               <LoaderIcon className="size-3.5 animate-spin text-muted-foreground" />
               <span className="text-muted-foreground text-xs">
@@ -250,7 +257,7 @@ export function PdfPreview() {
               </span>
             </>
           )}
-          {!isCompiling && pdfData && (
+          {!isSaving && !isCompiling && pdfData && (
             <>
               <span className="text-muted-foreground text-xs">Ready</span>
               <Button
@@ -263,7 +270,7 @@ export function PdfPreview() {
               </Button>
             </>
           )}
-          {!isCompiling && compileError && (
+          {!isSaving && !isCompiling && compileError && (
             <>
               <span className="text-destructive text-xs">Error</span>
               <Button

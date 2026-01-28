@@ -3,22 +3,14 @@
   "ui": "tui",
   "tasks": {
     "build": {
-      "dependsOn": [
-        "^build"
-      ],
-      "inputs": [
-        "$TURBO_DEFAULT$",
-        ".env*"
-      ],
-      "outputs": [
-        ".next/**",
-        "!.next/cache/**",
-        ".wrangler/**",
-        "dist/**"
-      ],
+      "dependsOn": ["^build"],
+      "inputs": ["$TURBO_DEFAULT$", ".env*"],
+      "outputs": [".next/**", "!.next/cache/**", ".wrangler/**", "dist/**"],
       "env": [
         "OPENAI_API_KEY",
-        "LATEX_API_URL"
+        "LATEX_API_URL",
+        "KV_REST_API_URL",
+        "KV_REST_API_TOKEN"
       ]
     },
     "dev": {
@@ -27,8 +19,5 @@
     }
   },
   "globalEnv": [],
-  "globalDependencies": [
-    ".env",
-    ".env.local"
-  ]
+  "globalDependencies": [".env", ".env.local"]
 }

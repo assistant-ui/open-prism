@@ -8,6 +8,7 @@ import {
   lineNumbers,
   highlightActiveLine,
   highlightActiveLineGutter,
+  scrollPastEnd,
 } from "@codemirror/view";
 import {
   defaultKeymap,
@@ -17,6 +18,14 @@ import {
 } from "@codemirror/commands";
 import { syntaxHighlighting } from "@codemirror/language";
 import { oneDark, oneDarkHighlightStyle } from "@codemirror/theme-one-dark";
+import {
+  search,
+  highlightSelectionMatches,
+  SearchQuery,
+  setSearchQuery as setSearchQueryEffect,
+  findNext,
+  findPrevious,
+} from "@codemirror/search";
 import { latex } from "codemirror-lang-latex";
 import { useDocumentStore, type ProjectFile } from "@/stores/document-store";
 import { compileLatex, type CompileResource } from "@/lib/latex-compiler";
@@ -24,6 +33,7 @@ import { EditorToolbar } from "./editor-toolbar";
 import { AIDrawer } from "./ai-drawer";
 import { ImagePreview } from "./image-preview";
 import { LatexTools } from "./latex-tools";
+import { SearchPanel } from "./search-panel";
 
 interface StickyItem {
   type: "section" | "begin";
@@ -191,6 +201,10 @@ export function LatexEditor() {
   const [lineHtmlCache, setLineHtmlCache] = useState<Record<number, string>>(
     {},
   );
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [matchCount, setMatchCount] = useState(0);
+  const [currentMatch, setCurrentMatch] = useState(0);
 
   const parsedLines = useMemo(
     () => parseLatexStructure(activeFileContent ?? ""),
@@ -206,6 +220,76 @@ export function LatexEditor() {
   }, [parsedLines, currentLine, lineHtmlCache]);
 
   const compileRef = useRef<() => void>(() => {});
+  const isSearchOpenRef = useRef(false);
+
+  useEffect(() => {
+    isSearchOpenRef.current = isSearchOpen;
+  }, [isSearchOpen]);
+
+  useEffect(() => {
+    if (!searchQuery || !activeFileContent) {
+      setMatchCount(0);
+      setCurrentMatch(0);
+      return;
+    }
+
+    const regex = new RegExp(
+      searchQuery.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"),
+      "gi",
+    );
+    const matches = activeFileContent.match(regex);
+    setMatchCount(matches?.length ?? 0);
+    if (matches && matches.length > 0) {
+      setCurrentMatch(1);
+    } else {
+      setCurrentMatch(0);
+    }
+  }, [searchQuery, activeFileContent]);
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === "f") {
+        e.preventDefault();
+        setIsSearchOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    const query = new SearchQuery({
+      search: searchQuery,
+      caseSensitive: false,
+      literal: true,
+    });
+
+    view.dispatch({
+      effects: setSearchQueryEffect.of(query),
+    });
+
+    if (searchQuery) {
+      findNext(view);
+    }
+  }, [searchQuery]);
+
+  const handleFindNext = () => {
+    const view = viewRef.current;
+    if (!view) return;
+    findNext(view);
+    view.focus();
+  };
+
+  const handleFindPrevious = () => {
+    const view = viewRef.current;
+    if (!view) return;
+    findPrevious(view);
+    view.focus();
+  };
 
   compileRef.current = async () => {
     if (isCompiling) return;
@@ -273,14 +357,50 @@ export function LatexEditor() {
       keymap.of([
         {
           key: "Enter",
-          run: () => {
+          run: (view) => {
+            if (isSearchOpenRef.current) {
+              findNext(view);
+              return true;
+            }
             compileRef.current();
             return true;
           },
         },
         {
           key: "Shift-Enter",
-          run: insertNewlineAndIndent,
+          run: (view) => {
+            if (isSearchOpenRef.current) {
+              findPrevious(view);
+              return true;
+            }
+            return insertNewlineAndIndent(view);
+          },
+        },
+        {
+          key: "Mod-s",
+          run: () => {
+            const { setIsSaving } = useDocumentStore.getState();
+            setIsSaving(true);
+            setTimeout(() => setIsSaving(false), 1000);
+            return true;
+          },
+        },
+        {
+          key: "Mod-f",
+          run: () => {
+            setIsSearchOpen(true);
+            return true;
+          },
+        },
+        {
+          key: "Escape",
+          run: () => {
+            if (isSearchOpenRef.current) {
+              setIsSearchOpen(false);
+              return true;
+            }
+            return false;
+          },
         },
       ]),
     );
@@ -297,9 +417,12 @@ export function LatexEditor() {
         latex(),
         oneDark,
         syntaxHighlighting(oneDarkHighlightStyle),
+        search(),
+        highlightSelectionMatches(),
         updateListener,
         scrollListener,
         EditorView.lineWrapping,
+        scrollPastEnd(),
         EditorView.theme({
           "&": {
             height: "100%",
@@ -318,6 +441,21 @@ export function LatexEditor() {
           ".cm-content": {
             paddingLeft: "8px",
             paddingRight: "12px",
+          },
+          ".cm-searchMatch": {
+            backgroundColor: "#facc15 !important",
+            color: "#000 !important",
+            borderRadius: "2px",
+            boxShadow: "0 0 0 1px #eab308",
+          },
+          ".cm-searchMatch-selected": {
+            backgroundColor: "#f97316 !important",
+            color: "#fff !important",
+            borderRadius: "2px",
+            boxShadow: "0 0 0 2px #ea580c",
+          },
+          "&.cm-focused .cm-selectionBackground, .cm-selectionBackground": {
+            backgroundColor: "rgba(100, 150, 255, 0.3)",
           },
         }),
       ],
@@ -391,6 +529,21 @@ export function LatexEditor() {
   return (
     <div className="flex h-full flex-col bg-background">
       <EditorToolbar editorView={viewRef} />
+      {isSearchOpen && (
+        <SearchPanel
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          onClose={() => {
+            setIsSearchOpen(false);
+            setSearchQuery("");
+            viewRef.current?.focus();
+          }}
+          onFindNext={handleFindNext}
+          onFindPrevious={handleFindPrevious}
+          matchCount={matchCount}
+          currentMatch={currentMatch}
+        />
+      )}
       <div className="relative min-h-0 flex-1 overflow-hidden">
         {stickyLines.length > 0 && (
           <div className="absolute inset-x-0 top-0 z-10 border-border border-b bg-[#282c34] font-mono text-[14px] leading-[1.4] shadow-md">
@@ -419,11 +572,11 @@ export function LatexEditor() {
                 </span>
                 {section.html ? (
                   <span
-                    className="py-px pl-4"
+                    className="py-px pl-5.5"
                     dangerouslySetInnerHTML={{ __html: section.html }}
                   />
                 ) : (
-                  <span className="py-px pl-4 text-[#abb2bf]">
+                  <span className="py-px pl-5.5 text-[#abb2bf]">
                     {section.content}
                   </span>
                 )}

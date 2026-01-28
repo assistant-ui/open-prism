@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { compileRatelimit, getIP } from "@/lib/ratelimit";
 
 export const maxDuration = 60;
 
@@ -10,6 +11,26 @@ interface CompileResource {
 }
 
 export async function POST(req: Request) {
+  if (compileRatelimit) {
+    const ip = getIP(req);
+    const { success, limit, remaining, reset } =
+      await compileRatelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        },
+      );
+    }
+  }
+
   try {
     const { resources } = (await req.json()) as {
       resources: CompileResource[];

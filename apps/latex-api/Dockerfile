@@ -1,4 +1,6 @@
-FROM oven/bun:1-debian AS base
+FROM node:22-slim AS base
+
+RUN corepack enable pnpm
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     texlive \
@@ -10,11 +12,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-COPY package.json bun.lockb* ./
-RUN bun install --frozen-lockfile || bun install
+COPY package.json pnpm-lock.yaml* ./
+RUN pnpm install --frozen-lockfile || pnpm install
 
 COPY . .
+RUN pnpm build
 
 EXPOSE 3001
 
-CMD ["bun", "run", "start"]
+CMD ["node", "dist/index.js"]

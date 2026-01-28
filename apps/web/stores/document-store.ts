@@ -111,6 +111,7 @@ interface DocumentState {
   pdfData: Uint8Array | null;
   compileError: string | null;
   isCompiling: boolean;
+  isSaving: boolean;
   initialized: boolean;
 
   setActiveFile: (id: string) => void;
@@ -126,6 +127,7 @@ interface DocumentState {
   setPdfData: (data: Uint8Array | null) => void;
   setCompileError: (error: string | null) => void;
   setIsCompiling: (isCompiling: boolean) => void;
+  setIsSaving: (isSaving: boolean) => void;
   insertAtCursor: (text: string) => void;
   replaceSelection: (start: number, end: number, text: string) => void;
   findAndReplace: (find: string, replace: string) => boolean;
@@ -164,6 +166,7 @@ export const useDocumentStore = create<DocumentState>()(
       pdfData: null,
       compileError: null,
       isCompiling: false,
+      isSaving: false,
       initialized: false,
 
       setActiveFile: (id) =>
@@ -212,6 +215,8 @@ export const useDocumentStore = create<DocumentState>()(
       setCompileError: (error) => set({ compileError: error, pdfData: null }),
 
       setIsCompiling: (isCompiling) => set({ isCompiling }),
+
+      setIsSaving: (isSaving) => set({ isSaving }),
 
       setCursorPosition: (position) => set({ cursorPosition: position }),
 

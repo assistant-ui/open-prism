@@ -6,7 +6,7 @@
     "strict": true,
     "skipLibCheck": true,
     "esModuleInterop": true,
-    "types": ["bun"]
+    "outDir": "dist"
   },
   "include": ["src/**/*"]
 }

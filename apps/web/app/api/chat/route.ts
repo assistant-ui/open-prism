@@ -6,6 +6,8 @@ import {
   stepCountIs,
   type ToolSet,
 } from "ai";
+import { NextResponse } from "next/server";
+import { chatRatelimit, getIP } from "@/lib/ratelimit";
 
 export const maxDuration = 30;
 
@@ -43,6 +45,25 @@ Common tasks you help with:
 - Debugging LaTeX errors`;
 
 export async function POST(req: Request) {
+  if (chatRatelimit) {
+    const ip = getIP(req);
+    const { success, limit, remaining, reset } = await chatRatelimit.limit(ip);
+
+    if (!success) {
+      return NextResponse.json(
+        { error: "Too many requests" },
+        {
+          status: 429,
+          headers: {
+            "X-RateLimit-Limit": limit.toString(),
+            "X-RateLimit-Remaining": remaining.toString(),
+            "X-RateLimit-Reset": reset.toString(),
+          },
+        },
+      );
+    }
+  }
+
   const { messages, system, tools } = await req.json();
 
   const fullSystemPrompt = system
