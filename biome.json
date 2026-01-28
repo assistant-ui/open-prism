@@ -61,7 +61,8 @@
         "useHookAtTopLevel": "off",
         "noSwitchDeclarations": "off",
         "noUnsafeOptionalChaining": "off",
-        "useUniqueElementIds": "off"
+        "useUniqueElementIds": "off",
+        "noNestedComponentDefinitions": "off"
       },
       "complexity": {
         "noForEach": "off",
@@ -80,7 +81,9 @@
         "useFocusableInteractive": "off",
         "useButtonType": "off",
         "useSemanticElements": "off",
-        "noRedundantAlt": "off"
+        "noRedundantAlt": "off",
+        "noRedundantRoles": "off",
+        "useAriaPropsForRole": "off"
       },
       "security": {
         "noDangerouslySetInnerHtml": "off"
