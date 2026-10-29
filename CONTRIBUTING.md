@@ -4,7 +4,7 @@
 
 ### Requirements
 
-- Node.js 20+
+- Node.js 26 LTS (CI uses 26.13.0)
 - pnpm 10+
 - TeX Live (for local latex-api development)
 
